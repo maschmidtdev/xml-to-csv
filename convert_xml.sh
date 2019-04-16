@@ -22,10 +22,11 @@ csv_header="${csv_header},filename"
 # Comment values
 csv_header="${csv_header},username,createdate,comment"
 
+# Write column names into csv
 echo $csv_header >> $csv_path
 
 
-
+# Process the xml file for csv conversion
 while read xml_line
 do
 
