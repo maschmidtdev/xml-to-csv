@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Testkommentar
+
 # Variables
 TIMESTAMP=$(date +%Y%m%d_%H%M) # For logfile / naming csv
 DATE=$(date +%Y%m%d) # For ???
@@ -138,7 +140,7 @@ convert_to_csv(){
       attribute=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/" | tr -d '\r' )
       new_line="${new_line},$attribute"
 
-    # ------------ Get closing photo tag and wirte row into csv -------------
+    # ------------ Get closing photo tag and write row into csv -------------
     elif echo $xml_line | grep -q "/photo"; then
       echo $new_line >> $CSV_PATH # Write new row to csv
     fi
