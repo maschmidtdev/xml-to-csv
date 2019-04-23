@@ -10,7 +10,7 @@ LOG=../convert_xml.log
 
 # Exit script if there are no files to convert
 if [ -z "$(ls -A $RESPONSES)" ]; then
-  echo "Nothing here!" >> $LOG
+  printf "Nothing here!\n\n" >> $LOG
   exit 0
 fi
 
@@ -36,11 +36,11 @@ CSV_HEADER="${CSV_HEADER},username,createdate,comment"
 
 # Create the new csv file
 #CSV_NAME=$(echo $response_xml | tr '/' '\n' | grep xml | tr '.xml' '.csv')
-CSV_NAME="ORENDT_$TIMESTAMP.csv"
+CSV_NAME="RESPONSES_$TIMESTAMP.csv"
 CSV_PATH=../csv/$CSV_NAME
 
 # Remove test files
-rm ../csv/*
+#rm ../csv/*
 
 # Create new .csv
 touch $CSV_PATH
@@ -64,36 +64,36 @@ convert_to_csv(){
       timestamp=$(echo $xml_line | tr ' ' '\n' | grep timestamp | cut -d'=' -f 2)
 
       # Get agency
-      agency=$(echo $xml_line | tr ' ' '\n' | grep agency | cut -d'=' -f 2 | tr -d '>')
+      agency=$(echo $xml_line | tr ' ' '\n' | grep agency | cut -d'=' -f 2 | tr -d '>' | tr -d '\r' )
 
     # --------- PHOTO XML TAGS ------------
     elif echo $xml_line | grep -q "photo articleno"; then
       # Get articleno
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep articleno | cut -d'=' -f 2)
+      attribute=$(echo $xml_line | tr ' ' '\n' | grep articleno | cut -d'=' -f 2 | tr -d '\r' )
       new_line="$timestamp,$agency,$attribute"
 
       # Get stylno
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep styleno | cut -d'=' -f 2)
+      attribute=$(echo $xml_line | tr ' ' '\n' | grep styleno | cut -d'=' -f 2 | tr -d '\r' )
       new_line="$new_line,$attribute"
 
       # Get colorno
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep colorno | cut -d'=' -f 2)
+      attribute=$(echo $xml_line | tr ' ' '\n' | grep colorno | cut -d'=' -f 2 | tr -d '\r' )
       new_line="$new_line,$attribute"
 
       # Get season
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep season | cut -d'=' -f 2)
+      attribute=$(echo $xml_line | tr ' ' '\n' | grep season | cut -d'=' -f 2 | tr -d '\r' )
       new_line="$new_line,$attribute"
 
       # Get year
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep year | cut -d'=' -f 2)
+      attribute=$(echo $xml_line | tr ' ' '\n' | grep year | cut -d'=' -f 2 | tr -d '\r' )
       new_line="$new_line,$attribute"
 
       # Get version
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep version | cut -d'=' -f 2)
+      attribute=$(echo $xml_line | tr ' ' '\n' | grep version | cut -d'=' -f 2 | tr -d '\r' )
       new_line="$new_line,$attribute"
 
       # Get filetimestamp
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep filetimestamp | cut -d'=' -f 2 | tr -d '>')
+      attribute=$(echo $xml_line | tr ' ' '\n' | grep filetimestamp | cut -d'=' -f 2 | tr -d '>' | tr -d '\r' )
       new_line="$new_line,$attribute"
 
     # --------- STATUS XML TAGS ------------
@@ -121,21 +121,21 @@ convert_to_csv(){
     # --------- FILENAME XML TAGS ------------
     elif echo $xml_line | grep -q "filename"; then
       # Get filename
-      attribute=$(printf $xml_line | sed "s/<filename>//" | sed 's/<\/filename>//')
+      attribute=$(printf $xml_line | sed "s/<filename>//" | sed 's/<\/filename>//' | tr -d '\r' )
       new_line="${new_line},$attribute"
 
     # --------- COMMENT XML TAGS ------------
     elif echo $xml_line | grep -q "comment username"; then
       # Get username
-      attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep username | cut -d'=' -f 2)
+      attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep username | cut -d'=' -f 2 | tr -d '\r' )
       new_line="${new_line},$attribute"
 
       # Get createdate
-      attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep createdate | cut -d'=' -f 2)
+      attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep createdate | cut -d'=' -f 2 | tr -d '\r' )
       new_line="${new_line},$attribute"
 
       # Get comment  (replace '>' with newlines, grep line with comment, remove '</comment', replace comma)
-      attribute=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/")
+      attribute=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/" | tr -d '\r' )
       new_line="${new_line},$attribute"
 
     # ------------ Get closing photo tag and wirte row into csv -------------
@@ -148,14 +148,14 @@ convert_to_csv(){
   echo "Moving $1 into ${ARCHIVE}ORENDT_$TIMESTAMP/" >> $LOG
   mv $1 ${ARCHIVE}ORENDT_$TIMESTAMP/
 
-}
+} # End convert_to_csv()
 
 
 # Loop through all xml files in $RESPONSES
 for response_xml in $RESPONSES*
 do
   # Count number of lines in xml response
-  lines=$(wc -l $response_xml | tr ' ' '\n' | grep -o '[0-9]*') #G rab only the number of lines
+  lines=$(wc -l $response_xml | tr ' ' '\n' | grep -o '[0-9]*') #Grab only the number of lines
 
   # Disregard responses with only 2 lines (no content)
   if [ "$lines" -gt "2" ]; then
