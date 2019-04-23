@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Get the xml_file
-xml_file=./../Response/Orendt_20181109_130002.xml
+xml_file=./../response/Orendt_20181109_130002.xml
 
 # Create the new csv file
 csv_name=$(echo $xml_file | tr '/' '\n' | grep xml | tr '.xml' '.csv')
-csv_path=../CSV/$csv_name
+csv_path=../csv/$csv_name
 
 # Remove test file
 rm $csv_path
