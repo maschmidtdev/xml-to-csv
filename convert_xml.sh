@@ -24,8 +24,8 @@ fi
 echo $TIMESTAMP >> $LOG
 
 # Create Archive for current script run
-echo "Creating archive folder ${ARCHIVE}ORENDT_$TIMESTAMP/" >> $LOG
-mkdir ${ARCHIVE}ORENDT_$TIMESTAMP/
+echo "Creating archive folder ${ARCHIVE}REPONSES_$TIMESTAMP/" >> $LOG
+mkdir ${ARCHIVE}RESPONSES_$TIMESTAMP/
 
 # Column names for csv file
 CSV_HEADER="timestamp,agency,articleno,styleno,colorno,season,year,version,filetimestamp,status"
@@ -49,7 +49,6 @@ touch $CSV_PATH
 
 # Write column names into csv
 echo $CSV_HEADER >> $CSV_PATH
-
 
 # csv converter function
 convert_to_csv(){
@@ -103,25 +102,33 @@ convert_to_csv(){
       # Get status
       attribute=$(printf $xml_line | sed "s/<status>//" | sed 's/<\/status>//' | tr -d '\r')
       new_line="$new_line,$attribute"
-
-      if [ $attribute = "ACCEPTED" ]; then
-        new_line="${new_line},," # if status = accepted, declineCode and declineName will be empty
-      fi
+      # Prepare information about declineCode/declineName
+      declineCode="0"
+      declineName="0"
 
     # --------- DECLINECODE XML TAGS ------------
     elif echo $xml_line | grep -q "declineCode"; then
-      # Get declineName
+      # Get declineCode
       attribute=$(printf $xml_line | sed "s/<declineCode>//" | sed 's/<\/declineCode>//' | tr -d '\r')
       new_line="$new_line,$attribute"
+      declineCode="1"
 
     # --------- DECLINENAME XML TAGS ------------
     elif echo $xml_line | grep -q "declineName"; then
       # Get declineName
       attribute=$(printf $xml_line | sed "s/<declineName>//" | sed 's/<\/declineName>//' | tr -d '\r')
       new_line="${new_line},$attribute"
+      declineName="1"
 
     # --------- FILENAME XML TAGS ------------
     elif echo $xml_line | grep -q "filename"; then
+      # add empty columns for missing declineName/declineCode
+      if [ $declineName -eq "0" ]; then
+        new_line="$new_line,"
+      fi
+      if [ $declineCode -eq "0" ]; then
+        new_line="$new_line,"
+      fi
       # Get filename
       attribute=$(printf $xml_line | sed "s/<filename>//" | sed 's/<\/filename>//' | tr -d '\r' )
       new_line="${new_line},$attribute"
@@ -147,8 +154,8 @@ convert_to_csv(){
 
   done < $1 # End while
 
-  echo "Moving $1 into ${ARCHIVE}ORENDT_$TIMESTAMP/" >> $LOG
-  mv $1 ${ARCHIVE}ORENDT_$TIMESTAMP/
+  echo "Moving $1 into ${ARCHIVE}RESPONSES_$TIMESTAMP/" >> $LOG
+  mv $1 ${ARCHIVE}RESONSES_$TIMESTAMP/
 
 } # End convert_to_csv()
 
