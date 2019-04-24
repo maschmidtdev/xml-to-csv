@@ -6,7 +6,7 @@
 TIMESTAMP=$(date +%Y%m%d_%H%M) # For logfile / naming csv
 DATE=$(date +%Y%m%d) # For ???
 
-RESPONSES=../responses/
+RESPONSES=../response/
 ARCHIVE=../archive/
 LOG=../convert_xml.log
 
@@ -145,14 +145,14 @@ convert_to_csv(){
       new_line="${new_line},$attribute"
 
     # ------------ Get closing photo tag and write row into csv -------------
-    elif echo $xml_line | grep -q "/photo"; then
+    elif echo $xml_line | grep -q "/photo>"; then
       echo $new_line >> $CSV_PATH # Write new row to csv
     fi
 
   done < $1 # End while
 
   echo "Moving $1 into ${ARCHIVE}RESPONSES_$TIMESTAMP/" >> $LOG
-  mv $1 ${ARCHIVE}RESONSES_$TIMESTAMP/
+  mv $1 ${ARCHIVE}RESPONSES_$TIMESTAMP/
 
 } # End convert_to_csv()
 
@@ -160,11 +160,12 @@ convert_to_csv(){
 # Loop through all xml files in $RESPONSES
 for response_xml in $RESPONSES*
 do
-  # Count number of lines in xml response
-  lines=$(wc -l $response_xml | tr ' ' '\n' | grep -o '[0-9]*') #Grab only the number of lines
+  # Count number of lines in xml response	
+  lines=$(wc -l < $response_xml)
+  
 
   # Disregard responses with only 2 lines (no content)
-  if [ "$lines" -gt "2" ]; then
+  if [ $lines -gt 2 ]; then
     # Process the xml files for csv conversion
     convert_to_csv $response_xml
   else
