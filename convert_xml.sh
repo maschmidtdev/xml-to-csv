@@ -1,12 +1,10 @@
 #!/bin/bash
 
-# Testkommentar
-
 # Variables
 TIMESTAMP=$(date +%Y%m%d_%H%M) # For logfile / naming csv
 DATE=$(date +%Y%m%d) # For ???
 
-RESPONSES=../responses/
+RESPONSES=../response/
 ARCHIVE=../archive/
 LOG=../convert_xml.log
 
@@ -15,10 +13,6 @@ if [ -z "$(ls -A $RESPONSES)" ]; then
   printf "Nothing here!\n\n" >> $LOG
   exit 0
 fi
-
-
-# Get the response_xml
-#response_xml=./../responses/Orendt_20181109_130002.xml
 
 # Start writing into logfile
 echo $TIMESTAMP >> $LOG
@@ -133,29 +127,49 @@ convert_to_csv(){
       attribute=$(printf $xml_line | sed "s/<filename>//" | sed 's/<\/filename>//' | tr -d '\r' )
       new_line="${new_line},$attribute"
 
+      # Prepare for comments
+      comments=0 # Reset comment count
+
     # --------- COMMENT XML TAGS ------------
     elif echo $xml_line | grep -q "comment username"; then
-      # Get username
-      attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep username | cut -d'=' -f 2 | tr -d '\r' )
-      new_line="${new_line},$attribute"
 
-      # Get createdate
-      attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep createdate | cut -d'=' -f 2 | tr -d '\r' )
-      new_line="${new_line},$attribute"
+      # Increase comment count
+      comments=$(expr $comments + 1)
 
-      # Get comment  (replace '>' with newlines, grep line with comment, remove '</comment', replace comma)
-      attribute=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/" | tr -d '\r' )
-      new_line="${new_line},$attribute"
+      # Write username and createdate only for first comment (???)
+      if [ $comments -lt 2 ]; then
+        # Get username
+        attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep username | cut -d'=' -f 2 | tr -d '\r' )
+        new_line="${new_line},$attribute"
+
+        # Get createdate
+        attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep createdate | cut -d'=' -f 2 | tr -d '\r' )
+        new_line="${new_line},$attribute"
+
+        # Get first comment (replace '>' with newlines, grep line with comment, remove '</comment', replace comma)
+        attribute=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
+        # Write only if there is at least one comment
+        if [ $comments -gt 0 ]; then
+          new_line="${new_line},Com$comments) $attribute"
+        else
+          new_line="${new_line},"
+        fi
+
+      else
+        # Get additional comments
+        attribute=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
+        new_line="${new_line} (Com$comments) $attribute"
+      fi
 
     # ------------ Get closing photo tag and write row into csv -------------
-    elif echo $xml_line | grep -q "/photo"; then
+    elif echo $xml_line | grep -q "/photo>"; then
       echo $new_line >> $CSV_PATH # Write new row to csv
     fi
 
   done < $1 # End while
 
   echo "Moving $1 into ${ARCHIVE}RESPONSES_$TIMESTAMP/" >> $LOG
-  mv $1 ${ARCHIVE}RESONSES_$TIMESTAMP/
+  mv $1 ${ARCHIVE}RESPONSES_$TIMESTAMP/
 
 } # End convert_to_csv()
 
@@ -164,7 +178,7 @@ convert_to_csv(){
 for response_xml in $RESPONSES*
 do
   # Count number of lines in xml response
-  lines=$(wc -l $response_xml | tr ' ' '\n' | grep -o '[0-9]*') #Grab only the number of lines
+  lines=$(wc -l $response_xml | tr ' ' '\n' | grep -o '[0-9]*') # Grab only the number of lines
 
   # Disregard responses with only 2 lines (no content)
   if [ "$lines" -gt "2" ]; then
