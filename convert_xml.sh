@@ -22,7 +22,7 @@ echo "Creating archive folder ${ARCHIVE}REPONSES_$TIMESTAMP/" >> $LOG
 mkdir ${ARCHIVE}RESPONSES_$TIMESTAMP/
 
 # Column names for csv file
-CSV_HEADER="timestamp,agency,articleno,styleno,colorno,season,year,version,filetimestamp,status"
+CSV_HEADER="timestamp,agency,articleno,styleno,colorno,lastchanged,season,year,version,filetimestamp,status"
 # Status: declined
 CSV_HEADER="${CSV_HEADER},declinecode,declineName"
 # filename
@@ -31,8 +31,8 @@ CSV_HEADER="${CSV_HEADER},filename"
 CSV_HEADER="${CSV_HEADER},username,createdate,comment"
 
 # Create the new csv file
-#CSV_NAME=$(echo $response_xml | tr '/' '\n' | grep xml | tr '.xml' '.csv')
-CSV_NAME="RESPONSES_$TIMESTAMP.csv"
+#CSV_NAME="RESPONSES_$TIMESTAMP.csv"
+CSV_NAME="puma_response.csv"
 CSV_PATH=../csv/$CSV_NAME
 
 # Remove test files
@@ -64,68 +64,72 @@ convert_to_csv(){
     # --------- PHOTO XML TAGS ------------
     elif echo $xml_line | grep -q "photo articleno"; then
       # Get articleno
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep articleno | cut -d'=' -f 2 | tr -d '\r' )
-      new_line="$timestamp,$agency,$attribute"
+      articleno=$(echo $xml_line | tr ' ' '\n' | grep articleno | cut -d'=' -f 2 | tr -d '\r' )
+      new_line="$timestamp,$agency,$articleno"
 
-      # Get stylno
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep styleno | cut -d'=' -f 2 | tr -d '\r' )
-      new_line="$new_line,$attribute"
+      # Get styleno
+      styleno=$(echo $xml_line | tr ' ' '\n' | grep styleno | cut -d'=' -f 2 | tr -d '\r' )
+      new_line="$new_line,$styleno"
 
       # Get colorno
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep colorno | cut -d'=' -f 2 | tr -d '\r' )
-      new_line="$new_line,$attribute"
+      colorno=$(echo $xml_line | tr ' ' '\n' | grep colorno | cut -d'=' -f 2 | tr -d '\r' )
+      new_line="$new_line,$colorno"
+
+      # Get lastchanged
+      lastchanged=$(echo $xml_line | tr ' ' '\n' | grep lastchanged | cut -d'=' -f 2 | tr -d '\r' )
+      new_line="$new_line,$lastchanged"
 
       # Get season
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep season | cut -d'=' -f 2 | tr -d '\r' )
-      new_line="$new_line,$attribute"
+      season=$(echo $xml_line | tr ' ' '\n' | grep season | cut -d'=' -f 2 | tr -d '\r' )
+      new_line="$new_line,$season"
 
       # Get year
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep year | cut -d'=' -f 2 | tr -d '\r' )
-      new_line="$new_line,$attribute"
+      year=$(echo $xml_line | tr ' ' '\n' | grep year | cut -d'=' -f 2 | tr -d '\r' )
+      new_line="$new_line,$year"
 
       # Get version
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep version | cut -d'=' -f 2 | tr -d '\r' )
-      new_line="$new_line,$attribute"
+      version=$(echo $xml_line | tr ' ' '\n' | grep version | cut -d'=' -f 2 | tr -d '\r' )
+      new_line="$new_line,$version"
 
       # Get filetimestamp
-      attribute=$(echo $xml_line | tr ' ' '\n' | grep filetimestamp | cut -d'=' -f 2 | tr -d '>' | tr -d '\r' )
-      new_line="$new_line,$attribute"
+      filetimestamp=$(echo $xml_line | tr ' ' '\n' | grep filetimestamp | cut -d'=' -f 2 | tr -d '>' | tr -d '\r' )
+      new_line="$new_line,$filetimestamp"
 
     # --------- STATUS XML TAGS ------------
     elif echo $xml_line | grep -q "status"; then
       # Get status
-      attribute=$(printf $xml_line | sed "s/<status>//" | sed 's/<\/status>//' | tr -d '\r')
-      new_line="$new_line,$attribute"
+      status=$(printf $xml_line | sed "s/<status>//" | sed 's/<\/status>//' | tr -d '\r')
+      new_line="$new_line,$status"
       # Prepare information about declineCode/declineName
-      declineCode="0"
-      declineName="0"
+      declineCodes="0"
+      declineNames="0"
 
     # --------- DECLINECODE XML TAGS ------------
     elif echo $xml_line | grep -q "declineCode"; then
       # Get declineCode
-      attribute=$(printf $xml_line | sed "s/<declineCode>//" | sed 's/<\/declineCode>//' | tr -d '\r')
-      new_line="$new_line,$attribute"
-      declineCode="1"
+      declineCode=$(printf $xml_line | sed "s/<declineCode>//" | sed 's/<\/declineCode>//' | tr -d '\r')
+      new_line="$new_line,$declineCode"
+      declineCodes="1"
 
     # --------- DECLINENAME XML TAGS ------------
     elif echo $xml_line | grep -q "declineName"; then
       # Get declineName
-      attribute=$(printf $xml_line | sed "s/<declineName>//" | sed 's/<\/declineName>//' | tr -d '\r')
-      new_line="${new_line},$attribute"
-      declineName="1"
+      declineName=$(echo -e $xml_line | sed "s/<declineName>//" | sed 's/<\/declineName>//' | tr -d '\r')
+      new_line="${new_line},$declineName"
+      declineNames="1"
 
     # --------- FILENAME XML TAGS ------------
     elif echo $xml_line | grep -q "filename"; then
-      # add empty columns for missing declineName/declineCode
-      if [ $declineName -eq "0" ]; then
+      # Add empty columns for missing declineName/declineCode
+      if [ $declineNames -eq "0" ]; then
         new_line="$new_line,"
       fi
-      if [ $declineCode -eq "0" ]; then
+      if [ $declineCodes -eq "0" ]; then
         new_line="$new_line,"
       fi
       # Get filename
-      attribute=$(printf $xml_line | sed "s/<filename>//" | sed 's/<\/filename>//' | tr -d '\r' )
-      new_line="${new_line},$attribute"
+      filename=$(printf $xml_line | sed "s/<filename>//" | sed 's/<\/filename>//' | tr -d '\r' )
+      new_line="${new_line},$filename"
 
       # Prepare for comments
       comments=0 # Reset comment count
@@ -133,37 +137,44 @@ convert_to_csv(){
     # --------- COMMENT XML TAGS ------------
     elif echo $xml_line | grep -q "comment username"; then
 
-      # Increase comment count
-      comments=$(expr $comments + 1)
+      # There can be multiple comments
+      # For each comment, there will be a new record in the csv with the same data except for:
+      #   username, createdate and comment
 
-      # Write username and createdate only for first comment (???)
-      if [ $comments -lt 2 ]; then
-        # Get username
-        attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep username | cut -d'=' -f 2 | tr -d '\r' )
-        new_line="${new_line},$attribute"
+      # Get username
+      username=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep username | cut -d'=' -f 2 | tr -d '\r' )
+      new_line_and_comment="${new_line},$username"
 
-        # Get createdate
-        attribute=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep createdate | cut -d'=' -f 2 | tr -d '\r' )
-        new_line="${new_line},$attribute"
+      # Get createdate
+      createdate=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep createdate | cut -d'=' -f 2 | tr -d '\r' )
+      new_line_and_comment="${new_line_and_comment},$createdate"
 
-        # Get first comment (replace '>' with newlines, grep line with comment, remove '</comment', replace comma)
-        attribute=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
-        # Write only if there is at least one comment
-        if [ $comments -gt 0 ]; then
-          new_line="${new_line},Com$comments) $attribute"
-        else
-          new_line="${new_line},"
-        fi
+      # Get comment
+      export LC_CTYPE=C
+      comment=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
+      new_line_and_comment="${new_line_and_comment},$comment"
 
-      else
-        # Get additional comments
-        attribute=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
-        new_line="${new_line} (Com$comments) $attribute"
-      fi
+      echo "COMMENT:"
+      echo $comment
+
+      echo $new_line_and_comment >> $CSV_PATH
+
+
+
+    # --------- AFTER COMMENTS ------------
+    elif echo $xml_line | grep -q "</comments>"; then
+      echo "</comments"
+
+    # --------- NO COMMENTS ------------
+    elif echo $xml_line | grep -q "<comments/>"; then
+      echo $new_line >> $CSV_PATH
+
+
 
     # ------------ Get closing photo tag and write row into csv -------------
     elif echo $xml_line | grep -q "/photo>"; then
-      echo $new_line >> $CSV_PATH # Write new row to csv
+      echo "</photo>"
+      #echo $new_line >> $CSV_PATH # Write new row to csv
     fi
 
   done < $1 # End while
