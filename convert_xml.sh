@@ -4,9 +4,9 @@
 TIMESTAMP=$(date +%Y%m%d_%H%M) # For logfile / naming csv
 DATE=$(date +%Y%m%d) # For ???
 
-RESPONSES=../response/
-ARCHIVE=../archive/
-LOG=../convert_xml.log
+RESPONSES=/root/puma/response/
+ARCHIVE=/root/puma/archive/
+LOG=/root/puma/convert_xml.log
 
 # Exit script if there are no files to convert
 if [ -z "$(ls -A $RESPONSES)" ]; then
@@ -36,7 +36,7 @@ CSV_NAME="puma_response.csv"
 CSV_PATH=../csv/$CSV_NAME
 
 # Remove test files
-#rm ../csv/*
+#rm /root/puma/csv/*
 
 # Create new .csv
 touch $CSV_PATH
@@ -189,16 +189,16 @@ convert_to_csv(){
 for response_xml in $RESPONSES*
 do
   # Count number of lines in xml response
-  lines=$(wc -l $response_xml | tr ' ' '\n' | grep -o '[0-9]*') # Grab only the number of lines
+  lines=$(wc -l < $response_xml)
 
   # Disregard responses with only 2 lines (no content)
-  if [ "$lines" -gt "2" ]; then
+  if [ $lines -gt 2 ]; then
     # Process the xml files for csv conversion
     convert_to_csv $response_xml
   else
     echo "Deleting $response_xml" >> $LOG
     #rm $response_xml
-    mv $response_xml ../deleted/
+    mv $response_xml /root/puma/delete/
   fi
 
 done # End for
