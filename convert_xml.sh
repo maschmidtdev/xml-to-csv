@@ -4,9 +4,10 @@
 TIMESTAMP=$(date +%Y%m%d_%H%M) # For logfile / naming csv
 DATE=$(date +%Y%m%d) # For ???
 
-RESPONSES=/root/puma/response/
-ARCHIVE=/root/puma/archive/
-LOG=/root/puma/convert_xml.log
+RESPONSES=../response/
+XML_RESPONSE_ARCHIVE=../xml_response_archive/
+CSV_ARCHIVE=../csv/archive/
+LOG=../convert_xml.log
 
 # Exit script if there are no files to convert
 if [ -z "$(ls -A $RESPONSES)" ]; then
@@ -18,8 +19,8 @@ fi
 echo $TIMESTAMP >> $LOG
 
 # Create Archive for current script run
-echo "Creating archive folder ${ARCHIVE}REPONSES_$TIMESTAMP/" >> $LOG
-mkdir ${ARCHIVE}RESPONSES_$TIMESTAMP/
+echo "Creating archive folder ${XML_RESPONSE_ARCHIVE}$TIMESTAMP/" >> $LOG
+mkdir ${XML_RESPONSE_ARCHIVE}$TIMESTAMP/
 
 # Column names for csv file
 CSV_HEADER="timestamp,agency,articleno,styleno,colorno,lastchanged,season,year,version,filetimestamp,status"
@@ -35,8 +36,11 @@ CSV_HEADER="${CSV_HEADER},username,createdate,comment"
 CSV_NAME="puma_response.csv"
 CSV_PATH=../csv/$CSV_NAME
 
-# Remove test files
-#rm /root/puma/csv/*
+# Create archive folder for new csv
+mkdir $CSV_ARCHIVE$TIMESTAMP >> $LOG
+
+# Remove existing csv
+rm $CSV_PATH >> $LOG
 
 # Create new .csv
 touch $CSV_PATH
@@ -154,9 +158,7 @@ convert_to_csv(){
       comment=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
       new_line_and_comment="${new_line_and_comment},$comment"
 
-      echo "COMMENT:"
-      echo $comment
-
+      # Save record with this comment into csv
       echo $new_line_and_comment >> $CSV_PATH
 
 
@@ -167,22 +169,24 @@ convert_to_csv(){
 
     # --------- NO COMMENTS ------------
     elif echo $xml_line | grep -q "<comments/>"; then
+      new_line="${new_line},,," # There are no comments, so there will be no data for userame/createdate/comment
       echo $new_line >> $CSV_PATH
 
 
-
     # ------------ Get closing photo tag and write row into csv -------------
-    elif echo $xml_line | grep -q "/photo>"; then
-      echo "</photo>"
+    #elif echo $xml_line | grep -q "/photo>"; then
+      #echo "</photo>"
       #echo $new_line >> $CSV_PATH # Write new row to csv
     fi
 
   done < $1 # End while
 
-  echo "Moving $1 into ${ARCHIVE}RESPONSES_$TIMESTAMP/" >> $LOG
-  mv $1 ${ARCHIVE}RESPONSES_$TIMESTAMP/
+  # Move xml into archive
+  echo "Moving $1 into ${XML_RESPONSE_ARCHIVE}RESPONSES_$TIMESTAMP/" >> $LOG
+  mv $1 ${XML_RESPONSE_ARCHIVE}$TIMESTAMP/
 
 } # End convert_to_csv()
+
 
 
 # Loop through all xml files in $RESPONSES
@@ -195,10 +199,15 @@ do
   if [ $lines -gt 2 ]; then
     # Process the xml files for csv conversion
     convert_to_csv $response_xml
+
+    # Make copy of current csv and move to archive
+    echo "Creating archive $TIMESTAMP for $CSV_NAME" >> $LOG
+    cp $CSV_PATH $CSV_ARCHIVE$TIMESTAMP >> $LOG
+
   else
     echo "Deleting $response_xml" >> $LOG
     #rm $response_xml
-    mv $response_xml /root/puma/delete/
+    mv $response_xml ../delete/
   fi
 
 done # End for
