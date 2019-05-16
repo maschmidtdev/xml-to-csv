@@ -29,7 +29,7 @@ CSV_HEADER="${CSV_HEADER},declinecode,declineName"
 # filename
 CSV_HEADER="${CSV_HEADER},filename"
 # Comment values
-CSV_HEADER="${CSV_HEADER},username,createdate,comment"
+CSV_HEADER="${CSV_HEADER},username,createdate,comment,files"
 
 # Create the new csv file
 #CSV_NAME="RESPONSES_$TIMESTAMP.csv"
@@ -104,7 +104,8 @@ convert_to_csv(){
       # Get status
       status=$(printf $xml_line | sed "s/<status>//" | sed 's/<\/status>//' | tr -d '\r')
       new_line="$new_line,$status"
-      # Prepare information about declineCode/declineName
+
+      # Prepare information about declineCodes/declineNames
       declineCodes="0"
       declineNames="0"
 
@@ -135,8 +136,8 @@ convert_to_csv(){
       filename=$(printf $xml_line | sed "s/<filename>//" | sed 's/<\/filename>//' | tr -d '\r' )
       new_line="${new_line},$filename"
 
-      # Prepare for comments
-      comments=0 # Reset comment count
+      # Prepare new_lines array
+      unset new_lines # Reset new_lines array
 
     # --------- COMMENT XML TAGS ------------
     elif echo $xml_line | grep -q "comment username"; then
@@ -144,32 +145,39 @@ convert_to_csv(){
       # There can be multiple comments
       # For each comment, there will be a new record in the csv with the same data except for:
       #   username, createdate and comment
+      # Therefore, we will use an array for the new_lines with multiple comments from here on
 
       # Get username
       username=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep username | cut -d'=' -f 2 | tr -d '\r' )
-      new_line_and_comment="${new_line},$username"
-
       # Get createdate
       createdate=$(echo $xml_line | tr ' ' '\n' | tr '>' '\n' | grep createdate | cut -d'=' -f 2 | tr -d '\r' )
-      new_line_and_comment="${new_line_and_comment},$createdate"
-
       # Get comment
-      export LC_CTYPE=C
+      export LC_CTYPE=C # For ä ö ü ß
       comment=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
-      new_line_and_comment="${new_line_and_comment},$comment"
 
-      # Save record with this comment into csv
-      echo $new_line_and_comment >> $CSV_PATH
+      # Add comment data to new_lines array
+      new_lines[${#new_lines[@]}]="$new_line,$username,$createdate,$comment" # ${#new_lines[@]} returns the size of the array, so we add data after the last element
 
+    # --------- THERE ARE FILES ------------
+    elif echo $xml_line | grep -q "</files>"; then
+      # For each comment, save the record into csv
+      for new_line in "${new_lines[@]}" # ${new_lines[@]} returns each element of the array
+      do
+        echo "$new_line,yes" >> $CSV_PATH
+      done
 
+    # --------- THERE ARE NO FILES (but comments) ------------
+    elif echo $xml_line | grep -q "<files/>"; then
+      # For each comment, save the record into csv
+      for new_line in "${new_lines[@]}" # ${new_lines[@]} returns each element of the array
+      do
+        echo "$new_line,no" >> $CSV_PATH
+      done
 
-    # --------- AFTER COMMENTS ------------
-    elif echo $xml_line | grep -q "</comments>"; then
-      echo "</comments"
-
-    # --------- NO COMMENTS ------------
+    # --------- THERE ARE NO COMMENTS OR FILES ------------
     elif echo $xml_line | grep -q "<comments/>"; then
-      new_line="${new_line},,," # There are no comments, so there will be no data for userame/createdate/comment
+      # No comments, new_lines array needed
+      new_line="${new_line},,,,no" # There are no comments, so there will be no data for username/createdate/comment
       echo $new_line >> $CSV_PATH
 
 
@@ -182,7 +190,7 @@ convert_to_csv(){
   done < $1 # End while
 
   # Move xml into archive
-  echo "Moving $1 into ${XML_RESPONSE_ARCHIVE}RESPONSES_$TIMESTAMP/" >> $LOG
+  echo "Moving $1 into ${XML_RESPONSE_ARCHIVE}$TIMESTAMP/" >> $LOG
   mv $1 ${XML_RESPONSE_ARCHIVE}$TIMESTAMP/
 
 } # End convert_to_csv()
@@ -207,7 +215,7 @@ do
   else
     echo "Deleting $response_xml" >> $LOG
     #rm $response_xml
-    mv $response_xml ../delete/
+    mv $response_xml ../delete/ >> $LOG
   fi
 
 done # End for
