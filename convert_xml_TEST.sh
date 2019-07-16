@@ -53,6 +53,16 @@ convert_to_csv(){
 
   echo "Processing $1 ..." >> $LOG
 
+  # Create new temporary file
+  rm ../temp.tmp
+  touch ../temp.tmp
+
+  echo $(cat $1 | sed 's/\n//g') >> ../temp.tmp
+  sed -i '' 's/\/>/\'$'\n''/g' ../temp.tmp >> ../temp.tmp
+
+  exit 0
+
+
   # read each line of the $1 argument and do:
   while read xml_line
   do
@@ -154,7 +164,7 @@ convert_to_csv(){
       # Get comment
       export LC_CTYPE=C # For ä ö ü ß
       # comment=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
-      comment=$(echo $xml_line | sed -e 's/.*">//' | sed -e 's/<\/comment>//' | sed 's/,/ -/g') # Remove the parts before and after the comment, replace comma with ' -' to not mess up csv'
+      comment=$(echo $xml_line) # | tr '>' '\n' ) # | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
 
       echo $comment
 
