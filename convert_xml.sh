@@ -156,8 +156,6 @@ convert_to_csv(){
       # comment=$(echo $xml_line | tr '>' '\n' | grep '</comment' | sed 's/<\/comment//' | sed "s/,/ -/g" | tr -d '\r' )
       comment=$(echo $xml_line | sed -e 's/.*">//' | sed -e 's/<\/comment>//' | sed 's/,/ -/g') # Remove the parts before and after the comment, replace comma with ' -' to not mess up csv'
 
-      echo $comment
-
       # Add comment data to new_lines array
       new_lines[${#new_lines[@]}]="$new_line,$username,$createdate,$comment" # ${#new_lines[@]} returns the size of the array, so we add data after the last element
 
